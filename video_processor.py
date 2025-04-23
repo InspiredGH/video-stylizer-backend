@@ -1,12 +1,14 @@
 import os, uuid, cv2
 import ffmpeg
 
+VIDEOS_DIR = "videos"
+os.makedirs(VIDEOS_DIR, exist_ok=True)
+
 def process_anime(input_path):
-    output_path = f"videos/anime_{uuid.uuid4()}.mp4"
+    output_path = os.path.join(VIDEOS_DIR, f"anime_{uuid.uuid4()}.mp4")
     temp_dir = f"temp_{uuid.uuid4()}"
     os.makedirs(temp_dir)
 
-    # Extract frames
     vidcap = cv2.VideoCapture(input_path)
     success, image = vidcap.read()
     count = 0
@@ -18,21 +20,26 @@ def process_anime(input_path):
         success, image = vidcap.read()
         count += 1
 
-    # Rebuild video
     (
         ffmpeg
         .input(f'{temp_dir}/frame_%05d.png', framerate=25)
         .output(output_path)
         .run()
     )
+
+    # Cleanup
+    for f in os.listdir(temp_dir):
+        os.remove(os.path.join(temp_dir, f))
+    os.rmdir(temp_dir)
+
     return os.path.basename(output_path)
 
 def process_3d(input_path):
-    # Simulated "3D" style (blur + contrast for demo)
     cap = cv2.VideoCapture(input_path)
     width = int(cap.get(3))
     height = int(cap.get(4))
-    out_path = f"videos/3d_{uuid.uuid4()}.mp4"
+    out_path = os.path.join(VIDEOS_DIR, f"3d_{uuid.uuid4()}.mp4")
+
     out = cv2.VideoWriter(out_path, cv2.VideoWriter_fourcc(*'mp4v'), 25, (width, height))
 
     while cap.isOpened():
@@ -47,7 +54,6 @@ def process_3d(input_path):
     return os.path.basename(out_path)
 
 def apply_anime_filter(frame):
-    # Simulated anime filter: edge detection + bilateral filter
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     edges = cv2.Canny(gray, 100, 200)
     edges = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
