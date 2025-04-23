@@ -1,2 +1,6 @@
 gunicorn==23.0.0
 packaging==25.0
+flask==2.3.3
+requests
+opencv-python
+ffmpeg-python
