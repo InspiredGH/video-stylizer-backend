@@ -32,7 +32,7 @@ def process_video():
     else:
         return jsonify({"error": "Invalid style"}), 400
 
-    return jsonify({"result_url": f"https://inspired555.pythonanywhere.com/{output}"})
+    return jsonify({"result_url": f"https://video-stylizer-backend.onrender.com/{output}"})
 
 @app.route("/videos/<path:filename>")
 def serve_file(filename):
