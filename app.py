@@ -1,14 +1,14 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-
-app = Flask(__name__)
-CORS(app)
 
 import requests, uuid, os
 from video_processor import process_anime, process_3d
 
 app = Flask(__name__)
-UPLOAD_DIR = 'videos'
+CORS(app)
+
+# Use /tmp on Render for temp storage
+UPLOAD_DIR = "/tmp/videos"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @app.route("/process-video", methods=["POST"])
@@ -17,7 +17,7 @@ def process_video():
     video_url = data["url"]
     style = data["style"]
 
-    filename = f"{uuid.uuid4()}.mp4"
+    filename = f"{style}_{uuid.uuid4()}.mp4"
     filepath = os.path.join(UPLOAD_DIR, filename)
 
     with requests.get(video_url, stream=True) as r:
@@ -32,11 +32,14 @@ def process_video():
     else:
         return jsonify({"error": "Invalid style"}), 400
 
-    return jsonify({"result_url": f"https://video-stylizer-backend.onrender.com/{output}"})
+    return jsonify({
+        "result_url": f"https://video-stylizer-backend.onrender.com/videos/{os.path.basename(output)}"
+    })
 
 @app.route("/videos/<path:filename>")
 def serve_file(filename):
-    return app.send_static_file(f"videos/{filename}")
+    # Serve from /tmp/videos
+    return send_from_directory(UPLOAD_DIR, filename)
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=10000)
