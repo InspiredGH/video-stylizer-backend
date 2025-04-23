@@ -6,8 +6,10 @@ from video_processor import process_anime, process_3d
 app = Flask(__name__)
 CORS(app)
 
-UPLOAD_DIR = 'videos'
+UPLOAD_DIR = 'uploads'
+OUTPUT_DIR = 'videos'
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 @app.route("/process-video", methods=["POST"])
 def process_video():
@@ -24,17 +26,17 @@ def process_video():
                 f.write(chunk)
 
     if style == "anime":
-        output = process_anime(filepath)
+        output_filename = process_anime(filepath)
     elif style == "3d":
-        output = process_3d(filepath)
+        output_filename = process_3d(filepath)
     else:
         return jsonify({"error": "Invalid style"}), 400
 
-    return jsonify({"result_url": f"https://video-stylizer-backend.onrender.com/videos/{output}"})
+    return jsonify({"result_url": f"https://video-stylizer-backend.onrender.com/videos/{output_filename}"})
 
 @app.route("/videos/<path:filename>")
-def serve_file(filename):
-    return send_from_directory(UPLOAD_DIR, filename)
+def serve_video(filename):
+    return send_from_directory(OUTPUT_DIR, filename)
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=10000)
