@@ -1,11 +1,33 @@
-import os, uuid, cv2
+import os, uuid, cv2, json
 import ffmpeg
+from datetime import datetime
 
-VIDEOS_DIR = "videos"
-os.makedirs(VIDEOS_DIR, exist_ok=True)
+OUTPUT_DIR = "videos"
+LOG_DIR = "logs"
+LOG_FILE = os.path.join(LOG_DIR, "upload_log.json")
+
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(LOG_DIR, exist_ok=True)
+
+def log_upload(style, filename):
+    entry = {
+        "id": str(uuid.uuid4()),
+        "style": style,
+        "filename": filename,
+        "timestamp": datetime.utcnow().isoformat() + "Z"
+    }
+    if not os.path.exists(LOG_FILE):
+        with open(LOG_FILE, "w") as f:
+            json.dump([entry], f, indent=2)
+    else:
+        with open(LOG_FILE, "r+") as f:
+            data = json.load(f)
+            data.append(entry)
+            f.seek(0)
+            json.dump(data, f, indent=2)
 
 def process_anime(input_path):
-    output_path = os.path.join(VIDEOS_DIR, f"anime_{uuid.uuid4()}.mp4")
+    output_path = os.path.join(OUTPUT_DIR, f"anime_{uuid.uuid4()}.mp4")
     temp_dir = f"temp_{uuid.uuid4()}"
     os.makedirs(temp_dir)
 
@@ -27,20 +49,16 @@ def process_anime(input_path):
         .run()
     )
 
-    # Cleanup
-    for f in os.listdir(temp_dir):
-        os.remove(os.path.join(temp_dir, f))
-    os.rmdir(temp_dir)
-
-    return os.path.basename(output_path)
+    filename = os.path.basename(output_path)
+    log_upload("anime", filename)
+    return filename
 
 def process_3d(input_path):
     cap = cv2.VideoCapture(input_path)
     width = int(cap.get(3))
     height = int(cap.get(4))
-    out_path = os.path.join(VIDEOS_DIR, f"3d_{uuid.uuid4()}.mp4")
-
-    out = cv2.VideoWriter(out_path, cv2.VideoWriter_fourcc(*'mp4v'), 25, (width, height))
+    output_path = os.path.join(OUTPUT_DIR, f"3d_{uuid.uuid4()}.mp4")
+    out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'mp4v'), 25, (width, height))
 
     while cap.isOpened():
         ret, frame = cap.read()
@@ -51,7 +69,10 @@ def process_3d(input_path):
 
     cap.release()
     out.release()
-    return os.path.basename(out_path)
+
+    filename = os.path.basename(output_path)
+    log_upload("3d", filename)
+    return filename
 
 def apply_anime_filter(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
