@@ -27,10 +27,11 @@ def log_upload(style, filename):
             json.dump(data, f, indent=2)
 
 def process_anime(input_path):
-    output_path = os.path.join(OUTPUT_DIR, f"anime_{uuid.uuid4()}.mp4")
+    output_path = f"videos/anime_{uuid.uuid4()}.mp4"
     temp_dir = f"temp_{uuid.uuid4()}"
     os.makedirs(temp_dir)
 
+    # Extract frames
     vidcap = cv2.VideoCapture(input_path)
     success, image = vidcap.read()
     count = 0
@@ -42,16 +43,15 @@ def process_anime(input_path):
         success, image = vidcap.read()
         count += 1
 
-    (
-        ffmpeg
-        .input(f'{temp_dir}/frame_%05d.png', framerate=25)
-        .output(output_path)
-        .run()
-    )
+    # Rebuild video
+    try:
+        ffmpeg.input(f'{temp_dir}/frame_%05d.png', framerate=25).output(output_path).run()
+    except ffmpeg.Error as e:
+        print(f"Error during ffmpeg processing: {e.stderr.decode()}")
+        raise
 
-    filename = os.path.basename(output_path)
-    log_upload("anime", filename)
-    return filename
+    return os.path.basename(output_path)
+
 
 def process_3d(input_path):
     cap = cv2.VideoCapture(input_path)
